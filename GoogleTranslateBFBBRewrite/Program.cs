@@ -6,6 +6,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
+using HipHopFile;
 
 namespace GoogleTranslateBFBBRewrite
 {
@@ -26,6 +27,7 @@ namespace GoogleTranslateBFBBRewrite
 
         static void Main(string[] args)
         {
+            //do the code later...
             Console.WriteLine("Press any key to exit...");
             Console.ReadLine();
         }
