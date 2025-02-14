@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web;
+using System.Net.Http;
 using HipHopFile;
 
 namespace GoogleTranslateBFBBRewrite
@@ -59,14 +60,18 @@ namespace GoogleTranslateBFBBRewrite
         public static string Translate(string str, string fromLang, string toLang)
         {
             string url = $"https://translate.googleapis.com/translate_a/single?client=gtx&sl={fromLang}&tl={toLang}&dt=t&q={HttpUtility.UrlEncode(str)}";
-            WebClient webClient = new WebClient
-            {
-                Encoding = Encoding.UTF8
-            };
-            webClient.Headers.Add("user-agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)");
-            string result = webClient.DownloadString(url);
+            
+            HttpClient httpClient = new HttpClient();
+
             try
             {
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Add("User-Agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)");
+
+                HttpResponseMessage response = httpClient.Send(request);
+                response.EnsureSuccessStatusCode();
+
+                string result = response.Content.ReadAsStringAsync().Result;
                 result = result.Substring(4, result.IndexOf("\"", 4, StringComparison.Ordinal) - 4);
                 return result;
             }
@@ -74,6 +79,13 @@ namespace GoogleTranslateBFBBRewrite
             {
                 return "Error";
             }
+        }
+
+        public static void ExtractHIP(string filePath, string extractPath)
+        {
+            Console.WriteLine($"Extracting {Path.GetFileName(filePath)} to {extractPath}...");
+            (HipFile hipFile, Game game, Platform platform) = HipHopFile.HipFile.FromPath(filePath);
+            hipFile.ToIni(game, Path.Combine(extractPath, Path.GetFileNameWithoutExtension(filePath)), true, true);
         }
 
         public static string PickRandomLanguage()
