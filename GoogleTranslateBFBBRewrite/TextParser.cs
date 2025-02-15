@@ -41,6 +41,7 @@ namespace GoogleTranslateBFBBRewrite
                     return new TEXT
                     {
                         assetName = Path.GetFileNameWithoutExtension(filePath),
+                        assetPath = filePath,
                         charCount = charCount,
                         text = textChars,
                         padding = padding

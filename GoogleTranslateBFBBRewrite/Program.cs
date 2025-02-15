@@ -150,7 +150,13 @@ namespace GoogleTranslateBFBBRewrite
 
                     string finalText = ArrayToString(chunks);
 
-                    TextParser.WriteTextAsset()
+                    TEXT newText = new TEXT
+                    {
+                        charCount = (uint)finalText.Length,
+                        text = finalText.ToCharArray(),
+                    };
+
+                    TextParser.WriteTextAsset(text.assetPath, newText);
                 }
             }
 
