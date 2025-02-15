@@ -126,6 +126,7 @@ namespace GoogleTranslateBFBBRewrite
                     Console.WriteLine($"Translating {text.assetName}...");
 
                     List<string> chunks = SplitAtTags(new(text.text));
+                    List<string> newChunks = new List<string>();
 
                     foreach (string chunk in chunks)
                     {
@@ -136,16 +137,18 @@ namespace GoogleTranslateBFBBRewrite
                         else if (chunk.Length < 2)
                         {
                             Console.WriteLine("Skipping less than 2 characters chunk...");
+                            newChunks.Add(chunk);
                             continue;
                         }
 
                         if (chunk.StartsWith("{") && chunk.EndsWith("}"))
                         {
                             Console.WriteLine("Skipping formatting chunk...");
+                            newChunks.Add(chunk);
                             continue;
                         }
 
-                        //translate here
+                        newChunks.Add(BulkTranslate(chunk, config.TranslationIterations));
                     }
 
                     string finalText = ArrayToString(chunks);
