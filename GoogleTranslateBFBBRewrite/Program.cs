@@ -7,8 +7,8 @@ using System.Collections.Generic;
 using HipHopFile;
 using System.Text.RegularExpressions;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
-using System.Text;
+
+// Ignore Spelling: ini
 
 namespace GoogleTranslateBFBBRewrite
 {
@@ -33,6 +33,25 @@ namespace GoogleTranslateBFBBRewrite
             "fa", "pl", "pt", "pa", "qu", "ro", "ru", "sm", "sa", "gd", "nso", "sr", "st", "sn", "sd",
             "si", "sk", "sl", "so", "es", "su", "sw", "sv", "tg", "ta", "tt", "te", "th", "ti", "ts",
             "tr", "tk", "tw", "uk", "ur", "ug", "uz", "vi", "cy", "xh", "yi", "yo", "zu"
+        };
+
+        public static Dictionary<string, string> levelPrefixToFolder = new Dictionary<string, string>
+        {
+            {"b1", "b1"},
+            {"b2", "b2"},
+            {"b3", "b3"},
+            {"bb", "bb"},
+            {"bc", "bc"},
+            {"db", "db"},
+            {"gl", "gl"},
+            {"gy", "gy"},
+            {"hb", "hb"},
+            {"jf", "jf"},
+            {"kf", "kf"},
+            {"pg", "pg"},
+            {"rb", "rb"},
+            {"sm", "sm"},
+            {"sp", "sp"},
         };
 
         private static readonly string cfgPath = "config.json";
@@ -112,6 +131,15 @@ namespace GoogleTranslateBFBBRewrite
             {
                 string fileName = Path.GetFileName(hipFile);
                 string fileNameNoExt = Path.GetFileNameWithoutExtension(hipFile);
+
+                string containingFolder = Path.GetFileName(Path.GetDirectoryName(hipFile));
+
+                if (containingFolder == "mn-pal")
+                {
+                    Console.WriteLine("Skipping mn-pal because it's an unused menu thats not needed...");
+                    continue;
+                }
+
                 Console.WriteLine($"Extracting {fileName}...");
                 ExtractHIP(hipFile, config.ExtractedGameFilesPath);
                 Console.WriteLine($"Extracted {fileName}!");
@@ -161,6 +189,8 @@ namespace GoogleTranslateBFBBRewrite
 
                     TextParser.WriteTextAsset(text.assetPath, newText);
                 }
+
+
             }
 
             //print generic program info like version, name, etc.
@@ -255,7 +285,7 @@ namespace GoogleTranslateBFBBRewrite
             List<TEXT> textAssets = new List<TEXT>();
 
             if (!Directory.Exists(hipFolder) || !Directory.Exists(Path.Combine(hipFolder, "Text")))
-                throw new Exception("Invalid hip folder!");
+                throw new Exception("Invalid HIP folder!");
 
             string[] files = Directory.GetFiles(Path.Combine(hipFolder, "Text"), "*.*", SearchOption.TopDirectoryOnly);
 
@@ -277,6 +307,16 @@ namespace GoogleTranslateBFBBRewrite
             hipFile.ToIni(game, Path.Combine(extractPath, Path.GetFileNameWithoutExtension(filePath)), true, true);
         }
 
+        public static void PackHIP(string iniPath, string packPath)
+        {
+            string hipFileName = Path.GetFileName(Path.GetDirectoryName(iniPath));//hb01
+            string hipFolderName = levelPrefixToFolder[hipFileName[..2]]; //aka hb or b1
+            string fullExportPath = Path.Combine(packPath, hipFolderName) + $"\\{hipFileName}.HIP";
+            Console.WriteLine($"Packing {hipFileName}.HIP...");
+            (HipFile hipFile, Game game, Platform platform) = HipFile.FromINI(iniPath);
+            File.WriteAllBytes(fullExportPath, hipFile.ToBytes(game, platform));
+        }
+        //                    C:\export\hb\hb01.HIP
         public static List<string> SplitAtTags(string str)
         {
             string pattern = @"({[^{}]*})";
