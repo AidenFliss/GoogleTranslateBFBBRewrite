@@ -8,6 +8,7 @@ using HipHopFile;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
+using System.Text;
 
 namespace GoogleTranslateBFBBRewrite
 {
@@ -77,11 +78,11 @@ namespace GoogleTranslateBFBBRewrite
 
             if (config.TranslationIterations > 50)
             {
-                Console.WriteLine("Warning! TranslationIterations values of over 50 is not recommended!" +
-                    "It might take a VERY long time! Are you sure? [y/n]: ");
-                string input = Console.ReadLine();
+                Console.Write($"Warning: TranslationIterations values of over 50 ({config.TranslationIterations}) is not recommended! " +
+                    "It might take a VERY long time!\nAre you sure? [y/n]: ");
                 while (true)
                 {
+                    string input = Console.ReadLine();
                     if (input == String.Empty || input.Equals("n", StringComparison.CurrentCultureIgnoreCase))
                     {
                         Console.WriteLine("Ok then.");
@@ -109,7 +110,48 @@ namespace GoogleTranslateBFBBRewrite
 
             foreach (string hipFile in hipFiles)
             {
+                string fileName = Path.GetFileName(hipFile);
+                string fileNameNoExt = Path.GetFileNameWithoutExtension(hipFile);
+                Console.WriteLine($"Extracting {fileName}...");
+                ExtractHIP(hipFile, config.ExtractedGameFilesPath);
+                Console.WriteLine($"Extracted {fileName}!");
 
+                string extractPath = Path.Combine(config.ExtractedGameFilesPath, fileNameNoExt);
+                List<TEXT> texts = GetTextAssets(extractPath);
+
+                Console.WriteLine("Translating all TEXT assets...");
+
+                foreach (TEXT text in texts)
+                {
+                    Console.WriteLine($"Translating {text.assetName}...");
+
+                    List<string> chunks = SplitAtTags(new(text.text));
+
+                    foreach (string chunk in chunks)
+                    {
+                        if (chunk.Length > 200)
+                        {
+                            Console.WriteLine("Chunk is over 200 characters! This may take a bit...");
+                        }
+                        else if (chunk.Length < 2)
+                        {
+                            Console.WriteLine("Skipping less than 2 characters chunk...");
+                            continue;
+                        }
+
+                        if (chunk.StartsWith("{") && chunk.EndsWith("}"))
+                        {
+                            Console.WriteLine("Skipping formatting chunk...");
+                            continue;
+                        }
+
+                        //translate here
+                    }
+
+                    string finalText = ArrayToString(chunks);
+
+                    TextParser.WriteTextAsset()
+                }
             }
 
             //print generic program info like version, name, etc.
