@@ -1,14 +1,12 @@
 ﻿using System;
 using System.IO;
 using System.Web;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Collections.Generic;
-using HipHopFile;
 using System.Text.RegularExpressions;
-using System.Linq;
-
-// Ignore Spelling: ini
+using HipHopFile;
 
 namespace GoogleTranslateBFBBRewrite
 {
@@ -16,8 +14,14 @@ namespace GoogleTranslateBFBBRewrite
     {
         public string ExtractedGameFilesPath { get; set; }
         public string OutputGameFilesPath { get; set; }
+        public string TemporaryPath {  get; set; }
         public int TranslationIterations { get; set; }
-        public bool GenerateHeavyModManagerCompatibleMod { get; set; }
+        public int MaxRetries { get; set; }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(ExtractedGameFilesPath, OutputGameFilesPath, TemporaryPath, TranslationIterations, MaxRetries);
+        }
     }
 
     internal class Program
@@ -25,7 +29,7 @@ namespace GoogleTranslateBFBBRewrite
         public static List<string> ValidLangCodes = new List<string>
         {
             "af", "sq", "am", "ar", "hy", "as", "ay", "az", "bm", "eu", "be", "bn", "bho", "bs", "bg",
-            "ca", "ceb", "ny", "zh-CN", "zh-TW", "co", "hr", "cs", "da", "dv", "doi", "nl", "eo", "et",
+            "ca", "ceb", "ny", "co", "hr", "cs", "da", "dv", "doi", "nl", "eo", "et", // removed Chinese bc it makes the text stay chineese in some cases
             "ee", "fil", "fi", "fr", "fy", "gl", "ka", "de", "el", "gn", "gu", "ht", "ha", "haw", "he",
             "hi", "hmn", "hu", "is", "ig", "ilo", "id", "ga", "it", "ja", "jv", "kn", "kk", "km", "rw",
             "kok", "ko", "kri", "ku", "ckb", "ky", "lo", "la", "lv", "ln", "lt", "lg", "lb", "mk", "mai",
@@ -52,13 +56,16 @@ namespace GoogleTranslateBFBBRewrite
             {"rb", "rb"},
             {"sm", "sm"},
             {"sp", "sp"},
-        };
+            {"bo", "" },
+            {"fo", "" },
+            {"pl", "" },
+        }; // i know this is useless, but idc bc it took a while to make it
 
         private static readonly string cfgPath = "config.json";
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Google Translate BFBB/TSSM Rewrite\nV1.0\nBy: Aiden Fliss");
+            Console.WriteLine($"Google Translate BFBB/TSSM Rewrite\nV1.0\nBy: Aiden Fliss");
             Console.WriteLine($"Parsing '{cfgPath}'...");
 
             Config config;
@@ -69,7 +76,7 @@ namespace GoogleTranslateBFBBRewrite
             }
             else
             {
-                config = new Config { ExtractedGameFilesPath = "", OutputGameFilesPath = "", GenerateHeavyModManagerCompatibleMod = false, TranslationIterations = 0 };
+                config = new Config { ExtractedGameFilesPath = "", OutputGameFilesPath = "", TemporaryPath = "temp", TranslationIterations = 0, MaxRetries = 5 };
                 SaveSettings(cfgPath, config);
                 Console.WriteLine($"No '{cfgPath}' found! Generated a new one. Please fill out the information and restart");
             }
@@ -85,6 +92,12 @@ namespace GoogleTranslateBFBBRewrite
             if (!Directory.Exists(config.OutputGameFilesPath))
             {
                 Console.WriteLine("Invalid OutputGameFilesPath! Path does not exist!");
+                AskExit();
+            }
+
+            if (!Directory.Exists(config.TemporaryPath))
+            {
+                Console.WriteLine("Invalid TemporaryPath! Path does not exist!");
                 AskExit();
             }
 
@@ -120,14 +133,53 @@ namespace GoogleTranslateBFBBRewrite
                 }
             }
 
+            if (config.MaxRetries < 1)
+            {
+                Console.WriteLine("Having less than 1 MaxRetries is invalid!");
+                AskExit();
+            }
+
+            Console.WriteLine("Config:");
+            Console.WriteLine($"Extracted Files Path: '{config.ExtractedGameFilesPath}'");
+            Console.WriteLine($"Output Files Path: '{config.OutputGameFilesPath}'");
+            Console.WriteLine($"Temporary Path: '{config.TemporaryPath}'");
+            Console.WriteLine($"Translation Iterations: {config.TranslationIterations}");
+            Console.WriteLine($"Max Retries: {config.MaxRetries}");
+            Console.Write("Are these settings correct? [y/n]: ");
+
+            while (true)
+            {
+                string input = Console.ReadLine();
+                if (input == String.Empty || input.Equals("n", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    Console.WriteLine("Ok then. Go fix em'!");
+                    AskExit();
+                }
+                else if (input.Equals("y", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    Console.WriteLine("Ok.");
+                }
+                else
+                {
+                    Console.WriteLine("Invalid! Try again\nAre you sure? [y/n]: ");
+                    continue;
+                }
+                break;
+            }
+
+            if (!Directory.Exists(Path.Combine(config.OutputGameFilesPath, "files")))
+            {
+                Directory.CreateDirectory(Path.Combine(config.OutputGameFilesPath, "files"));
+            }
+
             Console.WriteLine($"Validated '{cfgPath}'!");
             Console.WriteLine("Getting all .HIP files...");
 
-            string[] hipFiles = Directory.GetFiles(config.ExtractedGameFilesPath);
+            string[] hipFiles = Directory.GetFiles(config.ExtractedGameFilesPath, "*.HIP", SearchOption.AllDirectories);
 
             Console.WriteLine("Translating .HIP files...");
 
-            foreach (string hipFile in hipFiles)
+            /*foreach (string hipFile in hipFiles)
             {
                 string fileName = Path.GetFileName(hipFile);
                 string fileNameNoExt = Path.GetFileNameWithoutExtension(hipFile);
@@ -140,11 +192,16 @@ namespace GoogleTranslateBFBBRewrite
                     continue;
                 }
 
+                if (Directory.Exists(Path.Combine(config.TemporaryPath, fileNameNoExt)))
+                {
+                    Console.WriteLine($"{fileName} is already extracted + translated! Skipping...");
+                }
+
                 Console.WriteLine($"Extracting {fileName}...");
-                ExtractHIP(hipFile, config.ExtractedGameFilesPath);
+                ExtractHIP(hipFile, config.TemporaryPath);
                 Console.WriteLine($"Extracted {fileName}!");
 
-                string extractPath = Path.Combine(config.ExtractedGameFilesPath, fileNameNoExt);
+                string extractPath = Path.Combine(config.TemporaryPath, fileNameNoExt);
                 List<TEXT> texts = GetTextAssets(extractPath);
 
                 Console.WriteLine("Translating all TEXT assets...");
@@ -176,10 +233,10 @@ namespace GoogleTranslateBFBBRewrite
                             continue;
                         }
 
-                        newChunks.Add(BulkTranslate(chunk, config.TranslationIterations));
+                        newChunks.Add(BulkTranslate(chunk, config.TranslationIterations, config));
                     }
 
-                    string finalText = ArrayToString(chunks);
+                    string finalText = ArrayToString(newChunks);
 
                     TEXT newText = new TEXT
                     {
@@ -190,22 +247,40 @@ namespace GoogleTranslateBFBBRewrite
                     TextParser.WriteTextAsset(text.assetPath, newText);
                 }
 
+                PackHIP(Path.Combine(config.TemporaryPath, fileNameNoExt) + "\\Settings.ini", config.OutputGameFilesPath);
+            }*/
 
-            }
+            Mod mod = new Mod();
+            mod.Game = HMM_Game.BFBB;
+            mod.CreatedAt = DateTime.Now;
+            mod.UpdatedAt = mod.CreatedAt;
+            mod.ModName = $"Translated Game {mod.CreatedAt.Year:D4}-{mod.CreatedAt.Month:D2}-{mod.CreatedAt.Day:D2} {mod.CreatedAt.Hour:D2}:{mod.CreatedAt.Minute:D2}:{mod.CreatedAt.Second:D2}";
+            mod.Author = "BFBB Google Translator";
+            mod.Description = $"This is a translated game generated by a Google Translate script. It was translated through Google Translate {config.TranslationIterations} times.";
+            mod.ModId = $"bfbb-translator-{config.TranslationIterations}-{config.GetHashCode()}";
 
-            //print generic program info like version, name, etc.
+            File.WriteAllText(Path.Combine(config.OutputGameFilesPath, "mod.json"), JsonSerializer.Serialize<Mod>(mod));
+            
+            AskExit();
 
-            //check the config.json file and read it / validate it, check if all paths inside it are valid
-            //if they are, continue to next block, else
-            //print "Please set all paths inside '{cfgPath}'!"
 
-            //paths are valid, and checked, now loop through all .hip files and extract them
-            //when extracted, get all TEXT assets, we want to get the text part of the file, ignoring
-            //the binary meta data, after than, loop through ALL the actual text data and split
-            //at every set of {} formatting tags, after than, loop through all not tag chunks
-            //and translate them X amount of times specified inside config.json, after translating
-            //all the chunks, recombine them all, and write it to the text file, repeat for all text
-            //assets inside the entire game
+
+
+
+
+            //print generic program info like version, name, etc. DONE
+
+            //check the config.json file and read it / validate it, check if all paths inside it are valid DONE
+            //if they are, continue to next block, else DONE
+            //print "Please set all paths inside '{cfgPath}'!" DONE
+
+            //paths are valid, and checked, now loop through all .hip files and extract them DONE
+            //when extracted, get all TEXT assets, we want to get the text part of the file, ignoring DONE
+            //the binary meta data, after than, loop through ALL the actual text data and split DONE
+            //at every set of {} formatting tags, after than, loop through all not tag chunks DONE
+            //and translate them X amount of times specified inside config.json, after translating DONE
+            //all the chunks, recombine them all, and write it to the text file, repeat for all text DONE KINDA STILL VALIDATING
+            //assets inside the entire game DONE
 
             //text is now all translated, now we repack the game by getting every hip folder
             //and repacking them using hip hop file, then copy them into the game extracted directory
@@ -231,30 +306,46 @@ namespace GoogleTranslateBFBBRewrite
             Environment.Exit(exitCode);
         }
 
-        public static string BulkTranslate(string str, int amount)
+        public static string BulkTranslate(string str, int amount, Config config)
         {
             string prevLang = "en";
             string nextLang = PickRandomLanguage();
             string nextString = str;
+            string lastSuccessfulTranslation = str;
+
             for (int i = 0; i < amount; i++)
             {
-                try
+                bool success = false;
+
+                for (int attempt = 1; attempt <= config.MaxRetries; attempt++)
                 {
-                    nextString = Translate(nextString, prevLang, nextLang);
+                    try
+                    {
+                        nextString = Translate(nextString, prevLang, nextLang);
+                        lastSuccessfulTranslation = nextString;
+                        success = true;
+                        break;
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Translation attempt {attempt} from {prevLang} to {nextLang} failed!");
+                    }
                 }
-                catch (Exception e)
+
+                if (!success)
                 {
-                    Console.WriteLine($"Error translating {str}! Skipping...");
-                    nextString = str;
+                    Console.WriteLine($"All {config.MaxRetries} retries failed for {prevLang} -> {nextLang}! Using last successful translation.");
+                    nextString = lastSuccessfulTranslation;
                 }
 
                 prevLang = nextLang;
                 nextLang = PickRandomLanguage();
             }
 
-            string finalString = Translate(nextString, prevLang, "en");
-            return finalString;
+            nextString = Translate(nextString, prevLang, "en");
+            return Translate(nextString, "en", "en");
         }
+
 
         public static string Translate(string str, string fromLang, string toLang)
         {
@@ -276,7 +367,7 @@ namespace GoogleTranslateBFBBRewrite
             }
             catch
             {
-                return "Error";
+                return "[Error_Translating]"; // if its an error, more clear as an error to user playing
             }
         }
 
@@ -302,21 +393,29 @@ namespace GoogleTranslateBFBBRewrite
 
         public static void ExtractHIP(string filePath, string extractPath)
         {
+            string fullExtractPath = Path.Combine(extractPath, Path.GetFileNameWithoutExtension(filePath));
+
+            if (Directory.Exists(fullExtractPath))
+            {
+                Console.WriteLine($"{Path.GetFileName(filePath)} is already extracted! Skipping...");
+                return;
+            }
+
             Console.WriteLine($"Extracting {Path.GetFileName(filePath)} to {extractPath}...");
             (HipFile hipFile, Game game, Platform platform) = HipHopFile.HipFile.FromPath(filePath);
-            hipFile.ToIni(game, Path.Combine(extractPath, Path.GetFileNameWithoutExtension(filePath)), true, true);
+            hipFile.ToIni(game, fullExtractPath, true, true);
         }
 
         public static void PackHIP(string iniPath, string packPath)
         {
-            string hipFileName = Path.GetFileName(Path.GetDirectoryName(iniPath));//hb01
-            string hipFolderName = levelPrefixToFolder[hipFileName[..2]]; //aka hb or b1
+            string hipFileName = Path.GetFileName(Path.GetDirectoryName(iniPath));
+            string hipFolderName = levelPrefixToFolder[hipFileName[..2]];
             string fullExportPath = Path.Combine(packPath, hipFolderName) + $"\\{hipFileName}.HIP";
             Console.WriteLine($"Packing {hipFileName}.HIP...");
             (HipFile hipFile, Game game, Platform platform) = HipFile.FromINI(iniPath);
             File.WriteAllBytes(fullExportPath, hipFile.ToBytes(game, platform));
         }
-        //                    C:\export\hb\hb01.HIP
+
         public static List<string> SplitAtTags(string str)
         {
             string pattern = @"({[^{}]*})";

@@ -3,14 +3,18 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net8.0-windows8.0</TargetFramework>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <AssemblyTitle>GoogleTranslateBFBBRewrite</AssemblyTitle>
     <Product>GoogleTranslateBFBBRewrite</Product>
     <Copyright>Copyright ©  2025</Copyright>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
+    <ApplicationIcon>SpongeSmokingCroppedEdited.ico</ApplicationIcon>
   </PropertyGroup>
+  <ItemGroup>
+    <Content Include="SpongeSmokingCroppedEdited.ico" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\HipHopTool\HipHopFile\HipHopFile.csproj" />
   </ItemGroup>
