@@ -81,7 +81,7 @@ internal class Program
 
     static void Main(string[] args)
     {
-        Console.WriteLine($"Google Translate BFBB/TSSM Rewrite\nV1.1\nBy: Aiden Fliss");
+        Console.WriteLine($"Google Translate BFBB/TSSM Rewrite\nV1.2\nBy: Aiden Fliss");
         Console.WriteLine($"Parsing '{cfgPath}'...");
 
         Config config;
