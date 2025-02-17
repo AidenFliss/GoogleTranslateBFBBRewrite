@@ -14,3 +14,5 @@ If you want to contribute, just make a PR or if there's a serious issue, make an
 [HipHopTool](https://github.com/igorseabra4/HipHopTool) - Wouldn't be possible without this, helped with extracting and repacking .HIP files.
 
 [Google Translate](https://translate.google.com/) - The engine that all the TEXT gets translated through.
+
+[SHiFT](https://www.youtube.com/@SHiFTss) - Made the Spongebob Smoking image, I just cropped & converted it.
