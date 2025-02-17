@@ -7,8 +7,10 @@ The config file contains settings for the paths the program uses.
 - ExtractedGameFilesPath - Path to the base game files, can be from Dolphin or GCR.
 - HeavyModManagerFolderPath - Path to the folder containing the HMM executable.
 - TemporaryPath - The temporary folder path.
+- TEXTListJSONPath - The cache json file to store the translated file names.
 - TranslationIterations - How many times the game gets translated.
 - MaxRetries - Max retries for when an error occurs.
+- LogToFile - If the logger will log to a log.log file.
 
 ## Building
 To build it, just open the repository inside Visual Studio 2022 or later and click Build.
