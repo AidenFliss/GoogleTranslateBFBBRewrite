@@ -81,7 +81,7 @@ internal class Program
 
     static void Main(string[] args)
     {
-        Console.WriteLine($"Google Translate BFBB/TSSM Rewrite\nV1.2\nBy: Aiden Fliss");
+        Console.WriteLine($"Google Translate BFBB/TSSM Rewrite\nV1.3\nBy: Aiden Fliss");
         Console.WriteLine($"Parsing '{cfgPath}'...");
 
         Config config;
@@ -245,11 +245,6 @@ internal class Program
                 continue;
             }
 
-            if (Directory.Exists(Path.Combine(config.TemporaryPath, fileNameNoExt)))
-            {
-                logger.Log($"{fileName} is already extracted + translated! Skipping...");
-            }
-
             logger.Log($"Extracting {fileName}...");
             ExtractHIP(hipFile, config.TemporaryPath);
             logger.Log($"Extracted {fileName}!");
@@ -264,6 +259,7 @@ internal class Program
                 if (IsTextInList(config.TEXTListJSONPath, text.assetName))
                 {
                     logger.Log($"Skipping {text.assetName} because it's already translated...");
+                    continue;
                 }
 
                 logger.Log($"Translating {text.assetName}...");
