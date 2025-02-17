@@ -363,9 +363,9 @@ namespace GoogleTranslateBFBBRewrite
                 result = result.Substring(4, result.IndexOf("\"", 4, StringComparison.Ordinal) - 4);
                 return result;
             }
-            catch
+            catch (Exception ex)
             {
-                return "[Error_Translating]"; // if its an error, more clear as an error to user playing
+                throw new Exception("Translation failed", ex); // Throw exception so BulkTranslate can handle it
             }
         }
 
