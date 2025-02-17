@@ -2,6 +2,14 @@
 
 This C# console app runs BFBB through Google Translate X amount of times. It is a rewrite of a Python version of this app that was written very incorrectly and ignored the complexities of the TEXT file format. This version is still a bit scuffed, but way less than the previous attempt.
 
+## Config
+The config file contains settings for the paths the program uses.
+- ExtractedGameFilesPath - Path to the base game files, can be from Dolphin or GCR.
+- HeavyModManagerFolderPath - Path to the folder containing the HMM executable.
+- TemporaryPath - The temporary folder path.
+- TranslationIterations - How many times the game gets translated.
+- MaxRetries - Max retries for when an error occurs.
+
 ## Building
 To build it, just open the repository inside Visual Studio 2022 or later and click Build.
 
