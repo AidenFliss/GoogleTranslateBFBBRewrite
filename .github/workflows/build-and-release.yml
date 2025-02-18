@@ -30,19 +30,38 @@ jobs:
       - name: Build project
         run: dotnet build --configuration Release --no-restore
 
-      - name: Fetch all tags
-        run: git fetch --tags --force
-
-      - name: Get latest tag
+      - name: Determine next version
         id: get_version
         run: |
-          $TAG_VERSION = $(git describe --tags --abbrev=0 2>$null) 
-          if (-not $TAG_VERSION) { $TAG_VERSION = "v0.0.1" } 
-          echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
+          # Fetch tags to ensure we have the latest
+          git fetch --tags
+          # Get the latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0)
+          echo "Latest tag: $LATEST_TAG"
+          # Extract major and minor version
+          VERSION_PARTS=(${LATEST_TAG//./ })
+          MAJOR=${VERSION_PARTS[0]}
+          MINOR=${VERSION_PARTS[1]}
+          # Increment minor version
+          NEW_MINOR=$((MINOR + 1))
+          # Form new tag
+          NEW_TAG="$MAJOR.$NEW_MINOR"
+          echo "New tag: $NEW_TAG"
+          # Set the new tag as an output
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
+
+      - name: Create and push new tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag ${{ env.NEW_TAG }}
+          git push origin ${{ env.NEW_TAG }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create zip archive
         run: |
-          $zipName = "GoogleTranslateBFBBv${{ env.TAG_VERSION }}.zip"
+          $zipName = "GoogleTranslateBFBBv${{ env.NEW_TAG }}.zip"
           Compress-Archive -Path GoogleTranslateBFBBRewrite/bin/Release/net8.0-windows8.0/GoogleTranslateBFBBRewrite.dll, `
                            GoogleTranslateBFBBRewrite/bin/Release/net8.0-windows8.0/GoogleTranslateBFBBRewrite.dll.config, `
                            GoogleTranslateBFBBRewrite/bin/Release/net8.0-windows8.0/GoogleTranslateBFBBRewrite.exe, `
@@ -54,17 +73,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: GoogleTranslateBFBB
-          path: GoogleTranslateBFBBv${{ env.TAG_VERSION }}.zip
+          path: GoogleTranslateBFBBv${{ env.NEW_TAG }}.zip
 
       - name: Create GitHub Release
-        if: github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG_VERSION }}
-          name: "Google Translate BFBB v${{ env.TAG_VERSION }}"
+          tag_name: ${{ env.NEW_TAG }}
+          name: "Google Translate BFBB v${{ env.NEW_TAG }}"
           body: "Windows .NET 8.0 Build"
           draft: false
           prerelease: false
-          files: GoogleTranslateBFBBv${{ env.TAG_VERSION }}.zip
+          files: GoogleTranslateBFBBv${{ env.NEW_TAG }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
