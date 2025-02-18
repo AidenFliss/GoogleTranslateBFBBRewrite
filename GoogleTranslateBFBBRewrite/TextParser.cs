@@ -34,6 +34,9 @@ namespace GoogleTranslateBFBBRewrite
                     int paddingSize = (int)((4 - (currentPosition % 4)) % 4);
                     byte[] padding = reader.ReadBytes(paddingSize);
 
+                    reader.BaseStream.Position = 0;
+                    byte[] bytes = reader.ReadBytes((int)reader.BaseStream.Length);
+
                     return new TEXT
                     {
                         assetName = Path.GetFileNameWithoutExtension(filePath),
@@ -41,7 +44,7 @@ namespace GoogleTranslateBFBBRewrite
                         charCount = charCount,
                         text = textChars,
                         padding = padding,
-                        rawBytes = reader.ReadBytes((int)reader.BaseStream.Length)
+                        rawBytes = bytes
                     };
                 }
             }
