@@ -256,6 +256,12 @@ internal class Program
 
             foreach (TEXT text in texts)
             {
+                if (text == null)
+                {
+                    logger.Log("Skipping NULL text asset..."); // not sure how TEXT gets null but ok...
+                    continue;
+                }
+
                 if (IsTextInList(config.TEXTListJSONPath, text.assetName))
                 {
                     logger.Log($"Skipping {text.assetName} because it's already translated...");
