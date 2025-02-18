@@ -41,8 +41,9 @@ jobs:
                            GoogleTranslateBFBBRewrite/bin/Release/net8.0-windows8.0/GoogleTranslateBFBBRewrite.dll.config, `
                            GoogleTranslateBFBBRewrite/bin/Release/net8.0-windows8.0/GoogleTranslateBFBBRewrite.exe, `
                            GoogleTranslateBFBBRewrite/bin/Release/net8.0-windows8.0/GoogleTranslateBFBBRewrite.runtimeconfig.json, `
-                           GoogleTranslateBFBBRewrite/bin/Release/net8.0-windows8.0/HipHopTool.dll `
+                           HipHopTool/HipHopFile/bin/Release/HipHopFile.dll `
                            -DestinationPath $zipName
+
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
