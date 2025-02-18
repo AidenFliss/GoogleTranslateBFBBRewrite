@@ -9,6 +9,8 @@
         public char[] text { get; set; }
         public byte[] padding { get; set; }
 
+        public byte[] rawBytes { get; set; }
+
         public TEXT()
         {
             assetName = "";
@@ -16,6 +18,7 @@
             charCount = 0;
             text = new char[] { };
             padding = new byte[0];
+            rawBytes = new byte[0];
         }
     }
 }

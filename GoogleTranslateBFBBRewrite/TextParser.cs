@@ -40,7 +40,8 @@ namespace GoogleTranslateBFBBRewrite
                         assetPath = filePath,
                         charCount = charCount,
                         text = textChars,
-                        padding = padding
+                        padding = padding,
+                        rawBytes = reader.ReadBytes((int)reader.BaseStream.Length)
                     };
                 }
             }

@@ -2,10 +2,12 @@
 using System.IO;
 using System.Web;
 using System.Linq;
+using System.Text;
 using System.Net.Http;
 using System.Text.Json;
 using System.Diagnostics;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using HipHopFile;
 
@@ -196,6 +198,8 @@ internal class Program
         Stopwatch totalTimeStopwatch = new Stopwatch();
         totalTimeStopwatch.Start();
 
+        SHA256 sha256 = SHA256.Create();
+
         Mod mod = new Mod();
         mod.Game = HMM_Game.BFBB;
         mod.CreatedAt = DateTime.Now;
@@ -262,7 +266,7 @@ internal class Program
                     continue;
                 }
 
-                if (IsTextInList(config.TEXTListJSONPath, text.assetName))
+                if (IsTextInList(config.TEXTListJSONPath, GetHash(sha256, text.rawBytes)))
                 {
                     logger.Log($"Skipping {text.assetName} because it's already translated...");
                     continue;
@@ -305,7 +309,10 @@ internal class Program
                 };
 
                 TextParser.WriteTextAsset(text.assetPath, newText);
-                AddTextToList(config.TEXTListJSONPath, text.assetName);
+                //AddTextToList(config.TEXTListJSONPath, text.assetName); flawed for characters talking
+                //chars have diff hashes, but not different names, like bubblebuddy_description_text
+                //being there multiple times...
+                AddTextToList(config.TEXTListJSONPath, GetHash(sha256, text.rawBytes));
             }
 
             PackHIP(Path.Combine(config.TemporaryPath, fileNameNoExt) + "\\Settings.ini", Path.Combine(modFolder, "files"));
@@ -511,5 +518,20 @@ internal class Program
         }
 
         return translatedFiles.Contains(text);
+    }
+
+    //thx Microsoft
+    public static string GetHash(HashAlgorithm hashAlgorithm, byte[] input)
+    {
+        byte[] data = hashAlgorithm.ComputeHash(input);
+
+        var sBuilder = new StringBuilder();
+
+        for (int i = 0; i < data.Length; i++)
+        {
+            sBuilder.Append(data[i].ToString("x2"));
+        }
+
+        return sBuilder.ToString();
     }
 }
