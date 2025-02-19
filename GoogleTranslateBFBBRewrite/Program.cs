@@ -325,7 +325,7 @@ internal class Program
                 AddTextToList(config.TEXTListJSONPath, GetHash(sha256, text.rawBytes));
             }
 
-            PackHIP(finalOtherExtractPath + "\\Settings.ini", Path.Combine(modFolder, "files"));
+            PackHIP(Path.Combine(finalOtherExtractPath, fileNameNoExt) + "\\Settings.ini", Path.Combine(modFolder, "files"));
         }
 
         totalTimeStopwatch.Stop();
