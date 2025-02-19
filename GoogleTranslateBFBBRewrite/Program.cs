@@ -249,12 +249,20 @@ internal class Program
                 continue;
             }
 
+            string finalExtractPath = Path.Combine(config.TemporaryPath, "original");
+            string finalOtherExtractPath = Path.Combine(config.TemporaryPath, "modified");
+
+            if (!Directory.Exists(finalExtractPath))
+            {
+                Directory.CreateDirectory(finalExtractPath);
+            }
+
             logger.Log($"Extracting {fileName}...");
-            ExtractHIP(hipFile, config.TemporaryPath);
+            ExtractHIP(hipFile, finalExtractPath); // have an unmodified copy for cache system
+            ExtractHIP(hipFile, finalOtherExtractPath);
             logger.Log($"Extracted {fileName}!");
 
-            string extractPath = Path.Combine(config.TemporaryPath, fileNameNoExt);
-            List<TEXT> texts = GetTextAssets(extractPath);
+            List<TEXT> texts = GetTextAssets(Path.Combine(finalExtractPath, fileNameNoExt));
 
             logger.Log("Translating all TEXT assets...");
 
@@ -308,14 +316,16 @@ internal class Program
                     text = finalText.ToCharArray(),
                 };
 
-                TextParser.WriteTextAsset(text.assetPath, newText);
+                string finalImportPath = Path.Combine(config.TemporaryPath, "modified", Path.GetFileNameWithoutExtension(hipFile), "Text", text.assetName);
+                
+                TextParser.WriteTextAsset(finalImportPath, newText);
                 //AddTextToList(config.TEXTListJSONPath, text.assetName); flawed for characters talking
                 //chars have diff hashes, but not different names, like bubblebuddy_description_text
                 //being there multiple times...
                 AddTextToList(config.TEXTListJSONPath, GetHash(sha256, text.rawBytes));
             }
 
-            PackHIP(Path.Combine(config.TemporaryPath, fileNameNoExt) + "\\Settings.ini", Path.Combine(modFolder, "files"));
+            PackHIP(finalOtherExtractPath + "\\Settings.ini", Path.Combine(modFolder, "files"));
         }
 
         totalTimeStopwatch.Stop();
@@ -370,7 +380,44 @@ internal class Program
             nextLang = PickRandomLanguage();
         }
 
-        nextString = Translate(nextString, prevLang, "en");
+        bool finalSuccess = false;
+        for (int attempt = 1; attempt <= config.MaxRetries; attempt++)
+        {
+            try
+            {
+                nextString = Translate(nextString, prevLang, "en");
+                finalSuccess = true;
+                break;
+            }
+            catch (Exception e)
+            {
+                logger.Log("ERROR", $"Final translation attempt {attempt} from {prevLang} to English failed! Ex: {e}");
+
+                if (attempt == config.MaxRetries)
+                {
+                    string fallbackLang = "fr"; // fuck it, we pretending to be French now
+                    logger.Log("WARN", $"Using fallback language {fallbackLang} instead of {prevLang} for final translation.");
+
+                    try
+                    {
+                        nextString = Translate(nextString, fallbackLang, "en");
+                        finalSuccess = true;
+                        break;
+                    }
+                    catch (Exception e2)
+                    {
+                        logger.Log("ERROR", $"Fallback translation attempt from {fallbackLang} to English failed! Ex: {e2}");
+                    }
+                }
+            }
+        }
+
+        if (!finalSuccess)
+        {
+            logger.Log("WARN", $"All final retries failed! Using last successful translation instead.");
+            nextString = lastSuccessfulTranslation;
+        }
+
         return nextString;
     }
 
